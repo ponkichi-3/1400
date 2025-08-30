@@ -1015,25 +1015,32 @@
       }else{ alert('クラウドに成績データがありません'); }
     }
 
-    function saveToCloudWithFeedback(){
-      if(!currentStudentInfo){ alert('生徒情報がありません'); return; }
-      const payload={
-        action:'save',
-        date:new Date().toLocaleString('ja-JP'),
-        name:currentStudentInfo.name,
-        grade:currentStudentInfo.grade,
-        class:currentStudentInfo.class,
-        number:currentStudentInfo.number,
-        percentage: Math.round((score/questions.length)*100),
-        score:score,
-        total:questions.length,
-        range:`${selectedRange.start}-${selectedRange.end}`
-      };
-      saveScoreToCloud(payload);
-      document.getElementById('saveNotice').style.display='none';
-      document.getElementById('saveSuccess').style.display='block';
-      document.getElementById('cloudSaveBtn').style.display='none';
-    }
+    async function saveToCloudWithFeedback(){
+  if(!currentStudentInfo){ alert('生徒情報がありません'); return; }
+  const payload={
+    action:'save',
+    date:new Date().toISOString(), // ISOで安定化
+    name:currentStudentInfo.name,
+    grade:currentStudentInfo.grade,
+    class:currentStudentInfo.class,
+    number:currentStudentInfo.number,
+    percentage: Math.round((score/questions.length)*100),
+    score:score,
+    total:questions.length,
+    range:`${selectedRange.start}-${selectedRange.end}`
+  };
+  try{
+    await saveScoreToCloud(payload);
+    // 送信直後の離脱で落ちるのを緩和（1秒だけ待機）
+    await new Promise(r => setTimeout(r, 1000));
+    document.getElementById('saveNotice').style.display='none';
+    document.getElementById('saveSuccess').style.display='block';
+    document.getElementById('cloudSaveBtn').style.display='none';
+  }catch(_){
+    // 失敗時は手動保存案内を継続表示（既存仕様を維持）
+    alert('送信に失敗しました。ネットワークを確認して再度お試しください。');
+  }
+}
     
     async function rebuildMergedSheet(){
       try{
